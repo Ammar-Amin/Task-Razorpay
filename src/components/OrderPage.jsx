@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useStatus } from '../context/StatusContext';
 
-const OrderPage = ({ token }) => {
+const OrderPage = ({ token, razorKey, setPayStatus }) => {
     const [orderData, setOrderData] = useState({
         packageId: '6613d6fbbf1afca9aa1b519e',
         pricingId: '662caa2d50bf43b5cef75232',
@@ -42,6 +42,8 @@ const OrderPage = ({ token }) => {
             if (response.data && response.data._id) {
                 setOrderId(response.data._id);
                 console.log('Order ID:', response.data._id);
+                // Initiate Razor Payment
+                handleRazorPayment(orderId);
             } else {
                 console.error('Failed to create order.');
                 setError("Failed to create order.")
@@ -53,6 +55,70 @@ const OrderPage = ({ token }) => {
             setLoading(false)
         }
     };
+
+    const handleRazorPayment = async (orderId) => {
+        try {
+            const options = {
+                key: razorKey,
+                amount: orderData.finalAmount * 100, // amount in paise (e.g., 441 INR => 44100 paise)
+                currency: 'INR',
+                name: 'Thesis Ace Writer',
+                description: 'Test Transaction',
+                order_id: orderId, // Pass the order ID here
+                handler: async function (response) {
+                    console.log('Payment successful:', response);
+                    // we are not getting payment signature in res.
+                    await verifyPayment(response, orderId);
+                    setPayStatus(true)
+                },
+                prefill: {
+                    name: 'Ammar Amin',
+                    email: 'user@example.com',
+                    contact: '0123456789',
+                },
+                theme: {
+                    color: '#3399cc',
+                },
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+        } catch (error) {
+            console.error('Error initiating Razorpay payment:', error);
+            setError("Error initiating Razorpay payment")
+        }
+    };
+
+    const verifyPayment = async (paymentResponse, orderId) => {
+
+        try {
+            const verificationResponse = await axios.post(
+                'https://api.testbuddy.live/v1/order/verify',
+                {
+                    transactionId: orderId,
+                    razorpayPaymentId: paymentResponse.razorpay_payment_id,
+                    razorpaySignature: paymentResponse.razorpay_signature,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            console.log(verificationResponse)
+
+            if (verificationResponse.data.success) {
+                console.log('Payment verified successfully:', verificationResponse.data);
+            } else {
+                console.error('Payment verification failed.');
+                setError('Payment verification failed.')
+            }
+        } catch (error) {
+            console.error('Error verifying payment:', error);
+            setError('Error verifying payment')
+        }
+    };
+
 
     const handleReset = () => {
         setOrderData({

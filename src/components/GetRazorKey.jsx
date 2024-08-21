@@ -2,7 +2,7 @@ import axios from 'axios';
 import React from 'react'
 import { useStatus } from '../context/StatusContext';
 
-const GetRazorKey = ({ token, razorKey, setRazorKey }) => {
+const GetRazorKey = ({ token, setRazorKey }) => {
     const [loading, setLoading, error, setError] = useStatus()
 
     const getTheKey = async () => {
@@ -44,11 +44,6 @@ const GetRazorKey = ({ token, razorKey, setRazorKey }) => {
                 {loading ? "Getting..." : "Get Key"}
             </button>
             <div className="mt-7">
-                {razorKey && (
-                    <span>Your Key: {" "}
-                        <span className="bg-slate-700 p-2 rounded">{razorKey}</span>
-                    </span>
-                )}
                 {error && (<span className='my-4'>{error}</span>)}
             </div>
         </div>
